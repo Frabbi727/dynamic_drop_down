@@ -1,0 +1,345 @@
+GENERIC DROP DOWN USES
+
+### Generic for manupaliting data
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:relief_manger_flutter/utils/color_util.dart';
+import 'package:relief_manger_flutter/widgets/elevated_button.dart';
+
+
+void showGenericListDialog<T>({
+  required List<T> itemList,
+  required T? selectedItem,
+  required String Function(T) getItemName,
+  required void Function(T) onItemSelected,
+  required String dialogTitle,
+  bool showSearch = false,
+}) {
+  final TextEditingController searchController = TextEditingController();
+  final RxList<T> filteredList = itemList.obs;
+  final RxBool isSearchNotEmpty = false.obs;
+  debugPrint("total item list length ${filteredList.length}");
+
+  // user er 1 word minimum type kore lagbe then serach start hobe length barano komano jabe
+  void filterSearch(String query) {
+    if (query.length < 1) {
+      filteredList.value = itemList;
+      debugPrint("before filter ${filteredList.length}");
+    } else {
+      filteredList.value = itemList
+          .where((item) => getItemName(item)
+          .toLowerCase()
+          .contains(query.toLowerCase()))
+          .toList();
+      debugPrint("after filter  ${filteredList.length}");
+    }
+  }
+
+
+  void clearSearch() {
+    searchController.clear();
+    isSearchNotEmpty.value = false;
+    filteredList.value = itemList;
+  }
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SizedBox(
+        width: Get.width,
+        height: 600,
+        child: Column(
+          children: [
+            Flexible(
+              flex: 1,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      dialogTitle.tr,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (showSearch)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Obx(() => TextFormField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          isSearchNotEmpty.value = value.isNotEmpty;
+                          filterSearch(value);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'key_search'.tr,
+                          suffixIcon: isSearchNotEmpty.value
+                              ? IconButton(
+                            icon: const Icon(Icons.clear,color: Colors.red,),
+                            onPressed: clearSearch,
+                          )
+                              : const Icon(Icons.search),
+
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(
+                              color: ColorUtil.primaryColor,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(
+                              color: ColorUtil.primaryColor,
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+
+                        ),
+
+                      )),
+                    ),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Obx(() => ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, i) {
+                          return GestureDetector(
+                            onTap: () {
+                              onItemSelected(filteredList[i]);
+                              Get.back();
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 10),
+                              margin: const EdgeInsets.only(bottom: 5),
+                              decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          width: 1,
+                                          color: ColorUtil.borderColor))),
+                              child: Text(
+                                getItemName(filteredList[i]),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: selectedItem == filteredList[i]
+                                      ? ColorUtil.primaryColor
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      )),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: MyElevatedButton(
+                  'key_cancel'.tr,
+                      () => {Get.back()},
+                  buttonTextColor: ColorUtil.whiteColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+
+
+
+/*void showGenericListDialog<T>({
+  required List<T> itemList,
+  required T? selectedItem,
+  required String Function(T) getItemName,
+  required void Function(T) onItemSelected,
+  required String dialogTitle,
+}) {
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SizedBox(
+        width: Get.width,
+        height: 500,
+        child: Column(
+          children: [
+            Flexible(
+              flex: 1,
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    dialogTitle.tr ?? "",
+                    style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                    decoration: BoxDecoration(color: Colors.white,borderRadius: BorderRadius.circular(8)),
+                    child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: itemList.length,
+                        itemBuilder: (context, i) {
+                          return GestureDetector(
+                            onTap: () {
+                              onItemSelected(itemList[i]);
+                              Get.back();
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 10),
+                              margin: const EdgeInsets.only(bottom: 5),
+                              decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          width: 1, color: ColorUtil.borderColor))),
+                              child: Text(
+                                getItemName(itemList[i]),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: selectedItem == itemList[i]
+                                      ? ColorUtil.primaryColor
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                ),
+              ],),
+            ),
+
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: MyElevatedButton(
+                  'key_cancel'.tr,
+                      () => {Get.back()},
+                  buttonTextColor: ColorUtil.whiteColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}*/
+
+### using as drop down 
+ DropDownWidget(
+                      '5w_submission_for'.tr,
+                      () {
+                        if (controller.crisisList.isNotEmpty) {
+                          showGenericListDialog(
+                            dialogTitle: 'select_crisis'.tr,
+                            itemList: controller.crisisList,
+                            selectedItem: controller.selectedCrisis.value,
+                            getItemName: (CrisisSelectionDto crisis) =>
+                                crisis.getCrisisSelection(
+                                    controller.getStorage) ??
+                                "",
+                            onItemSelected: (CrisisSelectionDto selectCrisis) {
+                              controller.selectedCrisis.value = selectCrisis;
+                              controller.isCrisisValid.value = true;
+                            },
+                          );
+                        }
+                      },
+                      hintTitle: controller.selectedCrisis.value
+                              ?.getCrisisSelection(controller.getStorage) ??
+                          "select_crisis".tr,
+                      isRequired: true,
+                    ),
+
+
+
+#### common dropdown widget 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:relief_manger_flutter/utils/app_sizes.dart';
+import 'package:relief_manger_flutter/utils/color_util.dart';
+import 'package:remixicon/remixicon.dart';
+
+class DropDownWidget extends StatelessWidget{
+
+  final String title;
+  final String? hintTitle;
+  final Function() onTap;
+  final bool isRequired;
+  final double? topPadding;
+
+
+  const DropDownWidget(this.title, this.onTap, {this.hintTitle,super.key,this.isRequired=false, this.topPadding = 20});
+
+  @override
+  Widget build(BuildContext context) {
+   return Column(
+     crossAxisAlignment: CrossAxisAlignment.start,
+     children: [
+       SizedBox(height: topPadding ?? 20,),
+       Row(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+           Flexible(
+             child: Text(
+               title,
+               style: const TextStyle(fontSize: AppFontSizes.defaultTextSize),
+               overflow: TextOverflow.ellipsis, // This will add "..." if text overflows
+               maxLines: 1, // Limits text to two lines
+             ),
+           ),
+           isRequired?const Text("*",style: TextStyle(color: Colors.red),):const SizedBox()
+         ],
+       ),
+       GestureDetector(
+         onTap: onTap,
+         child: Container(
+           margin: const EdgeInsets.only(top: 10),
+           padding: const EdgeInsets.all(8),
+           height: 50,
+           decoration: BoxDecoration(
+               borderRadius: BorderRadius.circular(8),
+               border: Border.all(color:ColorUtil.borderColor2,width: 1)
+           ),
+           child:  Row(
+             children: [
+               Expanded(child: Text(hintTitle??"Select", overflow: TextOverflow.ellipsis,style: const TextStyle(fontSize: AppFontSizes.defaultTextSize,color: ColorUtil.textFieldHintColor),)),
+               const Icon(Remix.arrow_down_s_line,color: ColorUtil.textFieldHintColor,)
+             ],
+           ),
+         ),
+       )
+     ],
+   );
+  }
+
+}
