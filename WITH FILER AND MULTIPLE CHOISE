@@ -1,0 +1,215 @@
+/// with search and multiple choise
+void showGenericListDialog<T>({
+  required String dialogTitle,
+  required List<T> itemList,
+  required String Function(T) getItemName,
+  T? selectedItem,
+  void Function(T)? onItemSelected,
+  void Function(List<T>)? onMultipleItemsSelected,
+  bool showSearch = false,
+  bool multipleChoice = false,
+}) {
+  final TextEditingController searchController = TextEditingController();
+  final RxList<T> filteredList = itemList.obs;
+  final RxBool isSearchNotEmpty = false.obs;
+  final RxList<T> selectedItems = <T>[].obs;
+
+
+  void filterSearch(String query) {
+    if (query.isEmpty) {
+      filteredList.value = itemList;
+    } else {
+      filteredList.value = itemList
+          .where((item) =>
+              (getItemName(item)).toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    }
+  }
+
+  void clearSearch() {
+    searchController.clear();
+    isSearchNotEmpty.value = false;
+    filteredList.value = itemList;
+    //selectedItems.clear();
+  }
+
+  void toggleSelection(T item) {
+    if (selectedItems.contains(item)) {
+      selectedItems.remove(item);
+    } else {
+      selectedItems.add(item);
+    }
+  }
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SizedBox(
+        width: Get.width,
+        height: 600,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                dialogTitle.tr,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            if (showSearch)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Obx(() => TextFormField(
+                      controller: searchController,
+                      onChanged: (value) {
+                        isSearchNotEmpty.value = value.isNotEmpty;
+                        filterSearch(value);
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'key_search'.tr,
+                        suffixIcon: isSearchNotEmpty.value
+                            ? IconButton(
+                                icon:
+                                    const Icon(Icons.clear, color: Colors.red),
+                                onPressed: clearSearch,
+                              )
+                            : const Icon(Icons.search),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: ColorUtil.primaryColor,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: ColorUtil.primaryColor,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    )),
+              ),
+            Expanded(
+              child: Obx(() => ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredList.length,
+                    itemBuilder: (context, i) {
+                      final item = filteredList[i];
+                      return multipleChoice
+                          ? Obx(
+                              () {
+                                return CheckboxListTile(
+                                  title: Text(getItemName(item)),
+                                  value: selectedItems.contains(item),
+                                  onChanged: (bool? value) {
+                                    toggleSelection(item);
+                                  },
+                                );
+                              },
+                            )
+                          : GestureDetector(
+                              onTap: () {
+                                if (onItemSelected != null) {
+                                  onItemSelected(item);
+                                }
+                                Get.back();
+                              },
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
+                                margin: const EdgeInsets.only(bottom: 5),
+                                decoration: const BoxDecoration(
+                                    border: Border(
+                                        bottom: BorderSide(
+                                            width: 1,
+                                            color: ColorUtil.borderColor))),
+                                child: Text(
+                                  getItemName(item) ?? "",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: selectedItem == item
+                                        ? ColorUtil.primaryColor
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ),
+                            );
+                    },
+                  )),
+            ),
+            if (multipleChoice) ...[
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: MyElevatedButton(
+                    'Add'.tr,
+                    () {
+                      debugPrint("before clear ${selectedItems.length}");
+                      onMultipleItemsSelected!(selectedItems.toList());
+                      selectedItems.clear();
+                      debugPrint(
+                          "Clear the list after submission ${selectedItems.length}");
+                      Get.back();
+                    },
+                    buttonTextColor: ColorUtil.whiteColor,
+                  ),
+                ),
+              ),
+            ],
+            if (!multipleChoice) ...[
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: MyElevatedButton(
+                    'key_cancel'.tr,
+                    () => {Get.back()},
+                    buttonTextColor: ColorUtil.whiteColor,
+                  ),
+                ),
+              ),
+            ]
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+######### IMPLIMENTATION 
+/// this testing for multiple choise with search
+                    DropDownWidget("union".tr, () {
+                      if (controller.unionList.isNotEmpty) {
+                        showGenericListDialog<UnionDto>(
+                          dialogTitle: 'select_union'.tr,
+                          itemList: controller.unionList,
+                          getItemName: (UnionDto item) => item.getUnionName(controller.getStorage) ?? "",
+                          onMultipleItemsSelected:
+                              (List<UnionDto> selectedItems) {
+                            controller.selectedUnions.value =
+                                selectedItems;
+                            debugPrint(
+                                "Selected unions object: ${controller.selectedUnions.value}");
+                            debugPrint(
+                                "Selected unions: ${selectedItems.map((e) => e.getUnionName(controller.getStorage)).toList()}");
+                          },
+                          showSearch: true,
+                          multipleChoice: true,
+                        );
+                      }
+                    },
+                        hintTitle: controller.selectedUnions.isNotEmpty
+                            ? controller.selectedUnions
+                                .map((e) =>
+                                    e.getUnionName(controller.getStorage))
+                                .join(", ")
+                            : "select_union".tr,
+                        isRequired: true),
